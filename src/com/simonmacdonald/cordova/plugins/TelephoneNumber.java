@@ -10,17 +10,28 @@ import android.telephony.TelephonyManager;
 
 public class TelephoneNumber extends CordovaPlugin {
 
-    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
+    public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) {
         if (action.equals("get")) {
-            TelephonyManager telephonyManager =
-                (TelephonyManager)this.cordova.getActivity().getSystemService(Context.TELEPHONY_SERVICE);
-            String result = telephonyManager.getLine1Number();
-            if (result != null) {
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, result));
-               return true;
-            }
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    try {
+                        TelephonyManager telephonyManager =
+                                (TelephonyManager) cordova.getActivity().getSystemService(Context.TELEPHONY_SERVICE);
+
+                        String result = telephonyManager.getLine1Number();
+                        if (result != null && !result.isEmpty()) {
+                            callbackContext.success(result);
+                        }
+                    } catch (java.lang.SecurityException e) {
+                        // Permissions are disabled
+                        callbackContext.error(e.getMessage());
+                        return;
+                    }
+                    callbackContext.error("");
+                }
+            });
+            return true;
         }
-        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
         return false;
     }
 }
